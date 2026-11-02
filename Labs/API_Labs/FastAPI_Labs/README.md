@@ -1,150 +1,99 @@
+# FastAPI Lab
 
----
-- Video Explanation: [FastAPI lab](https://www.youtube.com/watch?v=KReburHqRIQ&list=PLcS4TrUUc53LeKBIyXAaERFKBJ3dvc9GZ&index=4)
-- Blog: [FastAPI Lab-1](https://www.mlwithramin.com/blog/fastapi-lab1)
+This is my version of the FastAPI lab from the course repo. The lab trains a model on the iris flower data and serves it as an API, so you can send flower measurements and get back the predicted species.
 
----
+The iris data has 150 flowers from 3 species: setosa, versicolor and virginica. Each flower has 4 measurements in centimeters: sepal length, sepal width, petal length and petal width.
 
-## Overview
-
-In this Lab, we will learn how to expose ML models as APIs using [FastAPI](https://fastapi.tiangolo.com/) and [uvicorn](https://www.uvicorn.org/).
-1. **FastAPI**: FastAPI is a modern, fast (high-performance), web framework for building APIs with Python based on standard Python type hints.
-2. **uvicorn**: Uvicorn is an [Asynchronous Server Gateway Interface - ASGI](https://youtu.be/vKjCkeJGbNk) web server implementation for Python. It is often used to serve FastAPI aplications.
-
-The workflow involves the following steps:
-1. Training a Decision Tree Classifier on Iris Dataset.
-2. Serving the trained model as an API using FastAPI and uvicorn.
-
-## Setting up the lab
-
-1. Create a virtual environment(e.g. **fastapi_lab1_env**).
-2. Activate the environment and install the required packages using `pip install -r requirements.txt`.
-
-### Project structure
+## Folder structure
 
 ```
-mlops_labs
-└── fastapi_lab1
-    ├── assets/
-    ├── fastapi_lab1_env/
-    ├── model/
-    │   └── iris_model.pkl
-    ├── src/
-    │   ├── __init__.py
-    │   ├── data.py
-    │   ├── main.py
-    │   ├── predict.py
-    │   └── train.py
-    ├── README.md
-    └── requirements.txt
+FastAPI_Labs/
+├── assets/
+│   ├── docs_page.png      my screenshot of the updated API docs page
+│   ├── docs.png           screenshot from the original lab
+│   └── api_response.png   screenshot from the original lab
+├── model/
+│   └── iris_model.pkl     the trained model, created by train.py
+├── src/
+│   ├── __init__.py        empty file that marks src as a Python package
+│   ├── data.py            loads the iris data and splits it into train and test
+│   ├── train.py           trains the model, checks accuracy, saves it
+│   ├── predict.py         loads the model once and makes predictions
+│   └── main.py            the API itself, with all the endpoints
+├── requirements.txt       the Python packages needed
+└── README.md
 ```
 
-Note:
-- **fastapi[all]** in **requirements.txt** will install optional additional dependencies for fastapi which contains **uvicorn** too.
+## What each file does
 
-## Running the Lab
+**data.py** loads the iris data and splits it into two parts. 70% is used to train the model and 30% is kept aside to test it.
 
-1. First step is to train a Decision Tree Classifier(Although you have **`model/iris_model.pkl`** when you cloned from the repo, let's create a new model). To do this, move into **src/** folder with
-    ```bash
-    cd src
-    ```
-2. To train the Decision Tree Classifier, run:
-    ```bash
-    python train.py
-    ```
-3. To serve the trained model as an API, run:
-    ```bash
-    uvicorn app:main --reload
-    ```
-4. Testing endpoints - to view the documentation of your api model you can use [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) (or) [http://localhost:8000/docs](http://localhost:8000/docs) after you run you run your FastAPI app.
-    
-![API page](assets/docs.png)
-   
-You can also test out the results of your endpoints by interacting with them. Click on the dropdown button of your endpoint -> Try it out -> Fill the Request body -> Click on Execute button.
+**train.py** trains a Random Forest on the training data, then tests it on the 30% it has never seen and prints the accuracy. It saves the model together with its type and accuracy into model/iris_model.pkl.
 
-![API response](assets/api_response.png)
+**predict.py** loads the saved model once when the API starts. When a prediction is needed, it returns the class number, the species name and how confident the model is. It also has a small function that returns the model's details for the /model-info page.
 
-- You can also use other tools like [Postman](https://www.postman.com/) for API testing.
+**main.py** is the API. It defines what input the API accepts, checks that the input makes sense, and sets up three endpoints:
 
-### FastAPI Syntax
+| Endpoint | Type | What it does |
+|---|---|---|
+| / | GET | Checks that the API is running |
+| /model-info | GET | Shows the model type, its accuracy and the species it knows |
+| /predict | POST | Takes 4 measurements and returns the predicted species |
 
-- The instance of FASTAPI class can be defined as:
-    ```bash
-    app = FastAPI()
-     ```
-- When you run a FastAPI application, you often pass this app instance to an ASGI server uvicorn. The server then uses the app instance to handle incoming web requests and send responses based on the routes and logic you’ve defined in your FastAPI application.
-- To run a FastAPI application, run:
-    ```
-    uvicorn main:app --reload
-    ```
-- In this command, **main** is the name of the Python file containing your app instance (without the .py extension), and **app** is the name of the instance itself. The **--reload** flag tells uvicorn to restart the server whenever code changes are detected, which is useful during development and should not be used in production.
-- All the functions which should be used as API should be prefixed by **@app.get("/followed_by_endpoint_name")** or **@app.post("/followed_by_endpoint_name")**. This particular syntax is used to define route handlers (which function should handle an incoming request based on the URL and HTTP method), which are the functions responsible for responding to client requests to a given endpoint.
-    1. **Decorator (@)**: This symbol is used to define a decorator, which is a way to dynamically add functionality to functions or methods. In FastAPI, decorators are used to associate a function with a particular HTTP method and path.
-    2. **App Instance (app)**: This represents an instance of the FastAPI class. It is the core of your application and maintains the list of defined routes, request handlers, and other configurations.
-    3. **HTTP Method (get, post, etc.)**: The HTTP method specifies the type of HTTP request the route will respond to. For example, get is used for retrieving data, and post is used for sending data to the server. FastAPI provides a decorator for each standard HTTP method, such as @app.put, @app.delete, @app.patch, and @app.options, allowing you to define handlers for different types of client requests. For detailed info refer to this webiste by [Mdn](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).
-    4. **Path/Endpoint ("/endpoint_name")**: This is the URL path where the API will be accessible. When a client makes a request to this path using the specified HTTP method, FastAPI will execute the associated function and return the response.
-- Using **async** in FastAPI allows for non-blocking operations, enabling the server to handle other requests while waiting for I/O tasks, like database queries or model loading, to complete. This leads to improved concurrency and resource utilization, enhancing the application's ability to manage multiple simultaneous requests efficiently.
+## How it works
 
-### Data Models in FastAPI
+1. Run train.py once to train the model and save it.
+2. Start the API with uvicorn. It loads the saved model.
+3. Send 4 measurements to /predict.
+4. The API checks the numbers, passes them to the model and sends back the species name and confidence.
 
-##### 1. IrisData class
+## What I changed
 
-```python
-class IrisData(BaseModel):
-    petal_length: float
-    sepal_length:float
-    petal_width:float
-    sepal_width:float
+1. I changed the model from a Decision Tree to a Random Forest. The original code never checked accuracy, so I added that. The model got 97.78% on the test data, which is 44 out of 45 test flowers.
+2. The API now returns the species name and how confident the model is, not just a number.
+3. The API now rejects bad input. Before, you could send all zeros and still get an answer. Now each measurement has to be between 0 and 10.
+4. I added a /model-info page that shows the model type and its accuracy.
+5. The model now loads once when the API starts, instead of on every request.
+
+I also fixed the run command in the original instructions (it should be `uvicorn main:app`), made the file paths work from any folder, and updated requirements.txt so it installs on newer Python.
+
+## Example
+
+Sending this to /predict:
+
+```
+{"sepal_length": 6.7, "sepal_width": 3.0, "petal_length": 5.2, "petal_width": 2.3}
 ```
 
-The **IrisData** class is a [Pydantic model](https://docs.pydantic.dev/latest/concepts/models/) which defines the expected structure of the data for a request body. When you use it as a type annotation for a route operation parameter, FastAPI will perform the following actions:
-- **Request Body Reading:** FastAPI will read the request body as JSON.
-- **Data Conversion:** It will convert the corresponding types, if necessary.
-- **Data Validation:** It will validate the data. If the data is invalid, it will return a 422 Unprocessable Entity error response with details about what was incorrect.
+Gives back this:
 
-#### 2. IrisResponse class
-
-```python
-class IrisResponse(BaseModel):
-    response:int
+```
+{"class_id": 2, "species": "virginica", "confidence": 0.9911}
 ```
 
-The **IrisResponse** class is another Pydantic model that defines the structure of the response data for an endpoint. When you specify **response_model=IrisResponse** in a route operation, it tells FastAPI to:
-- **Serialize the Output**: Convert the output data to JSON format according to the IrisResponse model.
-- **Document the API**: Include the IrisResponse model in the generated API documentation, so API consumers know what to expect in the response.
+Sending all zeros now gives an error saying each value should be greater than 0, instead of a prediction.
 
----
+Calling /model-info gives:
 
-### FastAPI features
-
-1. **Request Body Reading**: When a client sends a request to a FastAPI endpoint, the request can include a body with data. For routes that expect data (commonly POST, PUT, or PATCH requests), this data is often in JSON format. FastAPI automatically reads the request body by checking the Content-Type header, which should be set to application/json for JSON payloads.
-2. **Data Conversion**: Once the request body is read, FastAPI utilizes Pydantic models to parse the JSON data. Pydantic attempts to construct an instance of the specified model using the data from the request body. During this instantiation, Pydantic converts the JSON data into the proper Python data types as declared in the model.
-    - For instance, if the JSON object has a field like petal_length with a value of "5.1" (a string), and the model expects a float, Pydantic will transform the string into a float. If conversion isn't possible (say, the value was "five point one"), Pydantic will raise a validation error.
-3. **Data Validation**: Pydantic checks that all required fields are present and that the values are of the correct type, adhering to any constraints defined in the model (such as string length or number range). If the validation passes, the endpoint has a verified Python object to work with. If validation fails (due to missing fields, incorrect types, or constraint violations), FastAPI responds with a 422 Unprocessable Entity status. This response includes a JSON body detailing the validation errors, aiding clients in correcting their request data.
-4. **Error Handling**: Error handling in FastAPI can be effectively managed using the HTTPException class. HTTPException is used to explicitly signal an HTTP error status code and return additional details about the error. When an HTTPException is raised within a route, FastAPI will catch the exception and use its content to form the HTTP response.
-- **Instantiation**: The HTTPException class is instantiated with at least two arguments: status_code and detail. The status_code argument is an integer that represents the HTTP status code (e.g., 404 for Not Found, 400 for Bad Request). The detail argument is a string or any JSON-encodable object that describes the error.
-- **Response**: When an HTTPException is raised, FastAPI sends an HTTP response with the status code specified. The detail provided in the HTTPException is sent as the body of the response in JSON format.
-
-```python
-from fastapi import FastAPI, HTTPException
-
-app = FastAPI()
-
-@app.get("/items/{item_id}")
-async def read_item(item_id: int):
-    item = get_item_by_id(item_id)  # Hypothetical function to fetch an item
-    if item is None:
-        raise HTTPException(status_code=404, detail=f"Item with ID {item_id} not found")
-    return item
+```
+{"model_type": "RandomForestClassifier", "test_accuracy": 0.9778, "species": ["setosa", "versicolor", "virginica"]}
 ```
 
-In this example, **get_item_by_id** is a function that retrieves an item based on its ID. If no item with the given ID is found, an HTTPException with a 404 Not Found status code is raised, and the detail message is customized to include the ID of the item that was not found.
+## How to run
 
-FastAPI will catch this exception and return a response with a 404 status code and a JSON body like this:
+From the FastAPI_Labs folder:
 
-```json
-{
-    "detail": "Item with ID 1 not found"
-}
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cd src
+python train.py
+uvicorn main:app --reload
 ```
-- For more information on how to handle errors in FASTAPI refer to this [documentation](https://fastapi.tiangolo.com/tutorial/handling-errors/).
+
+Then open http://127.0.0.1:8000/docs in your browser. You can try all three endpoints there.
+
+## Screenshot
+
+![API docs page](assets/docs_page.png)
